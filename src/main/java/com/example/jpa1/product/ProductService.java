@@ -1,10 +1,16 @@
 package com.example.jpa1.product;
 
+import com.example.jpa1.entity.ProductDetailEntity;
 import com.example.jpa1.entity.ProductEntity;
+import com.example.jpa1.entity.ProviderEntity;
+import com.example.jpa1.product.model.ProductRegDto;
 import com.example.jpa1.product.model.ProductUpdDto;
 import com.example.jpa1.product.model.ProductVo;
+import com.example.jpa1.repository.ProductDetailRepository;
 import com.example.jpa1.repository.ProductRepository;
+import com.example.jpa1.repository.ProviderRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
@@ -13,11 +19,52 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ProductService {
 
     private final ProductRepository productRep;
+    private final ProviderRepository providerRep;
+    private final ProductDetailRepository detailRep;
+
+    public ProductVo postProduct(ProductRegDto dto) {
+        //원투원 테이블에 인서트하기 (프로덕트 + 프로덕트 디테일)
+
+        ProviderEntity providerEntity = providerRep.findById(dto.getProviderId()).get();
+        //프로바이더 이름 가져오기위해 위의 과정
+
+
+        ProductEntity productEntity = ProductEntity.builder()
+                .stock(dto.getStock())
+                .price(dto.getPrice())
+                .name(dto.getName())
+                .providerEntity(providerEntity)
+                .build();
+
+        productRep.save(productEntity); //Product 테이블에 인서트
+
+        ProductDetailEntity productDetailEntity = ProductDetailEntity.builder()
+                .productEntity(productEntity)
+                .description(dto.getDescription())
+                .build();
+        detailRep.save(productDetailEntity); //ProductDetail 테이블에 인서트
+
+        log.info("productDetail-number: {}", productDetailEntity.getNumber());
+
+        return ProductVo.builder()
+                .number(productEntity.getNumber())
+                .name(productEntity.getName())
+                .price(productEntity.getPrice())
+                .stock(productEntity.getStock())
+                .providerName(providerEntity.getName())
+                .description(productDetailEntity.getDescription())
+                .build();
+
+
+
+
+    }
 
     public ProductEntity updProduct(ProductUpdDto dto) {
         ProductEntity result = productRep.getReferenceById(dto.getNumber());
@@ -51,11 +98,14 @@ public class ProductService {
         return resultList;
         */
 
+
         return list.stream().map(entity -> ProductVo.builder() //map은 새로만드는 것과 '크기가 똑같을 때'쓴다. (내용만 바꿀 때)
                 .number(entity.getNumber())
                 .name(entity.getName())
                 .price(entity.getPrice())
                 .stock(entity.getStock())
+                .providerName(entity.getProviderEntity().getName())
+                .description(entity.getProductDetailEntity().getDescription())
                 .build()
         ).toList();
 

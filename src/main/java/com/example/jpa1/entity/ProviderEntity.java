@@ -18,6 +18,7 @@ public class ProviderEntity extends BaseEntity{
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(updatable = false, nullable = false, columnDefinition = "BIGINT UNSIGNED")
     private Long id;
 
     @Column(nullable = false)
